@@ -5,13 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  TURBO_TEAM: ""
-  TURBO_TOKEN: ""
-
 jobs:
   deploy-vercel:
     runs-on: ubuntu-latest
+    # Vercel supports Next.js SSR natively - no output:export needed
     steps:
       - uses: actions/checkout@v4
 
@@ -22,9 +19,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build console app only
+      - name: Build (remove output:export for Vercel SSR)
         run: |
-          npm run build --workspace=apps/console
+          # Remove output:export so Vercel can use native SSR
+          sed -i 's/output: .export.,//g' apps/console/next.config.js 2>/dev/null || \
+          node -e "let fs=require('fs');let c=fs.readFileSync('apps/console/next.config.js','utf8');c=c.replace(/output:[\s'"]export['"]?,?/g,'');fs.writeFileSync('apps/console/next.config.js',c);"
+          npm run build
 
       - name: Install Vercel CLI
         run: npm install -g vercel
@@ -40,6 +40,7 @@ jobs:
 
   deploy-cloudbase:
     runs-on: ubuntu-latest
+    # CloudBase only supports static - build with output:export
     steps:
       - uses: actions/checkout@v4
 
@@ -50,11 +51,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Next.js for Static Export
+      - name: Build static export for CloudBase
         run: |
           cd apps/console
-          npm install
-          npm run build
+          # Patch config: add output:export for static build (compatible with CloudBase)
+          node -e "
+const fs = require('fs');
+let cfg = fs.readFileSync('next.config.js','utf8');
+if (!cfg.includes('output:')) {
+  cfg = cfg.replace(/const nextConfig = \{/, 'const nextConfig = {\n  output: \"export\",\n  images: { unoptimized: true },');
+  fs.writeFileSync('next.config.js', cfg);
+}
+"
+          npx next build
 
       - name: Install CloudBase CLI
         run: npm install -g @cloudbase/cli
