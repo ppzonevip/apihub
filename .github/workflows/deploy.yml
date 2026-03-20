@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  TURBO_TEAM: ""
+  TURBO_TOKEN: ""
+
 jobs:
   deploy-vercel:
     runs-on: ubuntu-latest
@@ -17,6 +21,10 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Build console app only
+        run: |
+          npm run build --workspace=apps/console
 
       - name: Install Vercel CLI
         run: npm install -g vercel
@@ -58,6 +66,5 @@ jobs:
           TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
           TENCENT_ENV_ID: ${{ secrets.TENCENT_ENV_ID }}
         run: |
-          rm -rf apps/console/.git
           tcb login --apiKeyId "$TENCENT_SECRET_ID" --apiKey "$TENCENT_SECRET_KEY"
-          tcb hosting deploy -e "$TENCENT_ENV_ID" ./apps/console/out/
+          tcb hosting deploy -e "$TENCENT_ENV_ID" ./out/
