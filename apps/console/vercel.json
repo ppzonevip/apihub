@@ -1,0 +1,4 @@
+{
+  "buildCommand": "npm run build --workspace=apps/console",
+  "installCommand": "npm install --ignore-scripts"
+}
