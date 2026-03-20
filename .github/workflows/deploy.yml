@@ -50,12 +50,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Next.js Static Export
+      - name: Build Next.js for Static Export
         run: |
           cd apps/console
           npm install
           npm run build
-          npx next export
 
       - name: Install CloudBase CLI
         run: npm install -g @cloudbase/cli
@@ -67,4 +66,4 @@ jobs:
           TENCENT_ENV_ID: ${{ secrets.TENCENT_ENV_ID }}
         run: |
           tcb login --apiKeyId "$TENCENT_SECRET_ID" --apiKey "$TENCENT_SECRET_KEY"
-          tcb hosting deploy -e "$TENCENT_ENV_ID" ./out/
+          tcb hosting deploy -e "$TENCENT_ENV_ID" ./apps/console/out/
