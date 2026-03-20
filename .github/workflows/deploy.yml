@@ -8,66 +8,55 @@ on:
 jobs:
   deploy-vercel:
     runs-on: ubuntu-latest
-    # Vercel supports Next.js SSR natively - no output:export needed
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install dependencies
         run: npm install
-
-      - name: Build (remove output:export for Vercel SSR)
+      - name: Build for Vercel (SSR mode)
         run: |
-          # Remove output:export so Vercel can use native SSR
-          sed -i 's/output: .export.,//g' apps/console/next.config.js 2>/dev/null || \
-          node -e "let fs=require('fs');let c=fs.readFileSync('apps/console/next.config.js','utf8');c=c.replace(/output:[\s'"]export['"]?,?/g,'');fs.writeFileSync('apps/console/next.config.js',c);"
+          node -e "
+const fs = require('fs');
+let c = fs.readFileSync('apps/console/next.config.js', 'utf8');
+c = c.replace(/output:\s*['\"]export['\"],?\s*/g, '');
+c = c.replace(/images:\s*\{[^}]*unoptimized:\s*true[^}]*\},\s*/g, '');
+fs.writeFileSync('apps/console/next.config.js', c);
+"
           npm run build
-
       - name: Install Vercel CLI
         run: npm install -g vercel
-
-      - name: Pull Vercel Environment Information
+      - name: Pull Vercel Environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Build Vercel App
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Deploy to Vercel
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 
   deploy-cloudbase:
     runs-on: ubuntu-latest
-    # CloudBase only supports static - build with output:export
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install dependencies
         run: npm install
-
       - name: Build static export for CloudBase
         run: |
           cd apps/console
-          # Patch config: add output:export for static build (compatible with CloudBase)
           node -e "
 const fs = require('fs');
-let cfg = fs.readFileSync('next.config.js','utf8');
-if (!cfg.includes('output:')) {
-  cfg = cfg.replace(/const nextConfig = \{/, 'const nextConfig = {\n  output: \"export\",\n  images: { unoptimized: true },');
-  fs.writeFileSync('next.config.js', cfg);
+let c = fs.readFileSync('next.config.js', 'utf8');
+if (!c.includes('output')) {
+  c = c.replace('const nextConfig = {', 'const nextConfig = {\n  output: \"export\",\n  images: { unoptimized: true },');
+  fs.writeFileSync('next.config.js', c);
 }
 "
           npx next build
-
       - name: Install CloudBase CLI
         run: npm install -g @cloudbase/cli
-
       - name: Deploy to Tencent CloudBase
         env:
           TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
@@ -75,4 +64,4 @@ if (!cfg.includes('output:')) {
           TENCENT_ENV_ID: ${{ secrets.TENCENT_ENV_ID }}
         run: |
           tcb login --apiKeyId "$TENCENT_SECRET_ID" --apiKey "$TENCENT_SECRET_KEY"
-          tcb hosting deploy -e "$TENCENT_ENV_ID" ./apps/console/out/
+          tcb hosting deploy -e "$TENCENT_ENV_ID" ./out/
