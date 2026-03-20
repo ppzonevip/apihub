@@ -1,0 +1,24 @@
+{
+  "name": "apihub",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "dev:console": "npm run dev --workspace=apps/console",
+    "dev:gateway": "npm run dev --workspace=apps/gateway",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "prisma": "^5.14.0"
+  }
+}
