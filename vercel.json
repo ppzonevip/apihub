@@ -2,7 +2,10 @@
   "builds": [
     {
       "src": "apps/console/package.json",
-      "use": "@vercel/next"
+      "use": "@vercel/next",
+      "config": {
+        "outputDirectory": "apps/console/.next"
+      }
     }
   ]
 }
