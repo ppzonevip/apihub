@@ -1,0 +1,10 @@
+{
+  "projects": [
+    {
+      "path": "apps/console",
+      "settings": {
+        "framework": "nextjs"
+      }
+    }
+  ]
+}
