@@ -16,50 +16,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
-      - name: Build
-        run: npm run build
       - name: Deploy to Vercel
         run: |
-          # Copy .next to .vercel/output (what Vercel expects for --prebuilt)
-          mkdir -p .vercel/output
-          cp -r apps/console/.next .vercel/output/
           npm install -g vercel
           vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-  deploy-cloudbase:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm install
-      - name: Build static export
-        run: |
-          node -e "
-          const fs = require('fs');
-          const cfg = 'next.config.js';
-          let c = fs.readFileSync(cfg, 'utf8');
-          if (!c.includes('output')) {
-            const patched = c.replace(
-              'const nextConfig = {',
-              'const nextConfig = {\n  output: \"export\",\n  images: { unoptimized: true },'
-            );
-            fs.writeFileSync(cfg, patched);
-          }
-          "
-          npx next build
-        working-directory: apps/console
-      - name: Deploy to CloudBase
-        env:
-          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
-          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
-          TENCENT_ENV_ID: ${{ secrets.TENCENT_ENV_ID }}
-        run: |
-          npm install -g @cloudbase/cli
-          tcb login --apiKeyId "$TENCENT_SECRET_ID" --apiKey "$TENCENT_SECRET_KEY"
-          tcb hosting deploy -e "$TENCENT_ENV_ID" ./out/
-        working-directory: apps/console
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
