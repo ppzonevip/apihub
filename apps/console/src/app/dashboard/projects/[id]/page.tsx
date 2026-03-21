@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamicParams = true
+
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
