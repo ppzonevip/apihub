@@ -1,4 +1,0 @@
-{
-  "buildCommand": "npx turbo build --filter=@apihub/console",
-  "installCommand": "npm install --ignore-scripts"
-}
