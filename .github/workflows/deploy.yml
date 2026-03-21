@@ -1,4 +1,4 @@
-name: Deploy to CloudBase + Vercel
+name: Deploy
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Vercel — SSR 模式，部署 apps/console
   deploy-vercel:
     runs-on: ubuntu-latest
     steps:
@@ -13,27 +14,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
       - name: Install dependencies
         run: npm install
-      - name: Build for Vercel (SSR mode)
-        run: |
-          node -e "
-const fs = require('fs');
-let c = fs.readFileSync('apps/console/next.config.js', 'utf8');
-c = c.replace(/output:\s*['\"]export['\"],?\s*/g, '');
-c = c.replace(/images:\s*\{[^}]*unoptimized:\s*true[^}]*\},\s*/g, '');
-fs.writeFileSync('apps/console/next.config.js', c);
-"
-          npm run build
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Build Vercel App
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build
+        run: npm run build
       - name: Deploy to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npm install -g vercel
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/console
 
+  # CloudBase — 静态导出模式
   deploy-cloudbase:
     runs-on: ubuntu-latest
     steps:
@@ -41,27 +35,33 @@ fs.writeFileSync('apps/console/next.config.js', c);
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
       - name: Install dependencies
         run: npm install
-      - name: Build static export for CloudBase
+      - name: Configure static export
         run: |
-          cd apps/console
           node -e "
-const fs = require('fs');
-let c = fs.readFileSync('next.config.js', 'utf8');
-if (!c.includes('output')) {
-  c = c.replace('const nextConfig = {', 'const nextConfig = {\n  output: \"export\",\n  images: { unoptimized: true },');
-  fs.writeFileSync('next.config.js', c);
-}
-"
-          npx next build
-      - name: Install CloudBase CLI
-        run: npm install -g @cloudbase/cli
-      - name: Deploy to Tencent CloudBase
+          const fs = require('fs');
+          const cfg = 'apps/console/next.config.js';
+          let c = fs.readFileSync(cfg, 'utf8');
+          if (!c.includes('output')) {
+            const patched = c.replace(
+              'const nextConfig = {',
+              'const nextConfig = {\n  output: \"export\",\n  images: { unoptimized: true },'
+            );
+            fs.writeFileSync(cfg, patched);
+          }
+          "
+      - name: Build static
+        run: npx next build
+        working-directory: apps/console
+      - name: Deploy to CloudBase
         env:
           TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
           TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
           TENCENT_ENV_ID: ${{ secrets.TENCENT_ENV_ID }}
         run: |
+          npm install -g @cloudbase/cli
           tcb login --apiKeyId "$TENCENT_SECRET_ID" --apiKey "$TENCENT_SECRET_KEY"
           tcb hosting deploy -e "$TENCENT_ENV_ID" ./out/
+        working-directory: apps/console
