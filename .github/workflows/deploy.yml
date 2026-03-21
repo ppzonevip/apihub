@@ -20,6 +20,9 @@ jobs:
         run: npm run build
       - name: Deploy to Vercel
         run: |
+          # Copy .next to .vercel/output (what Vercel expects for --prebuilt)
+          mkdir -p .vercel/output
+          cp -r apps/console/.next .vercel/output/
           npm install -g vercel
           vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
           vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
